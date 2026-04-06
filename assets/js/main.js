@@ -153,3 +153,87 @@
   });
 
 })();
+
+// ===== PRICE CALCULATOR =====
+// Market rates (actual) → marked up 30% for "MRP" → 20% discount = Honest Hammer price
+// The discount price ends up being 1.3 × 0.8 = 1.04× market (4% above market)
+const SERVICE_RATES = {
+  civil:      { name: 'Complete Civil Works',       low: 1800, high: 2500, unit: 'sq.ft' },
+  electrical: { name: 'Electrical Hardware & Labour', low: 55,   high: 85,   unit: 'sq.ft' },
+  plumbing:   { name: 'Plumbing & Waterproofing',    low: 45,   high: 70,   unit: 'sq.ft' },
+  painting:   { name: 'Painting & Tiling',            low: 18,   high: 35,   unit: 'sq.ft' },
+  carpentry:  { name: 'Flooring, Carpentry & Doors',  low: 800,  high: 1500, unit: 'sq.ft' },
+  windows:    { name: 'Window Install & Grills',      low: 350,  high: 650,  unit: 'sq.ft' },
+  interior:   { name: 'Complete Interior Design',     low: 1200, high: 2800, unit: 'sq.ft' }
+};
+
+const MARKUP = 1.30;   // 30% above market for "MRP"
+const DISCOUNT = 0.80; // 20% off the MRP = Honest Hammer price
+
+function formatINR(num) {
+  // Indian number formatting: 12,34,567
+  const str = Math.round(num).toString();
+  let result = '';
+  const len = str.length;
+  if (len <= 3) return '₹' + str;
+  result = str.substring(len - 3);
+  let remaining = str.substring(0, len - 3);
+  while (remaining.length > 2) {
+    result = remaining.substring(remaining.length - 2) + ',' + result;
+    remaining = remaining.substring(0, remaining.length - 2);
+  }
+  if (remaining.length > 0) result = remaining + ',' + result;
+  return '₹' + result;
+}
+
+function calculatePrice() {
+  const serviceKey = document.getElementById('calc-service').value;
+  const area = parseFloat(document.getElementById('calc-area').value);
+
+  if (!serviceKey) {
+    alert('Please select a service.');
+    return;
+  }
+  if (!area || area <= 0) {
+    alert('Please enter a valid area in sq.ft.');
+    return;
+  }
+
+  const rate = SERVICE_RATES[serviceKey];
+
+  // MRP = market rate × 1.30 (30% markup)
+  const mrpLow = rate.low * MARKUP * area;
+  const mrpHigh = rate.high * MARKUP * area;
+
+  // Honest Hammer Price = MRP × 0.80 (20% discount)
+  const hhLow = mrpLow * DISCOUNT;
+  const hhHigh = mrpHigh * DISCOUNT;
+
+  // Average savings
+  const savingsLow = mrpLow - hhLow;
+  const savingsHigh = mrpHigh - hhHigh;
+  const avgSavings = (savingsLow + savingsHigh) / 2;
+
+  // Update UI
+  document.getElementById('calc-result-service').textContent = rate.name;
+  document.getElementById('calc-result-area').textContent = area.toLocaleString() + ' sq.ft';
+
+  document.getElementById('calc-mrp-low').textContent = formatINR(mrpLow);
+  document.getElementById('calc-mrp-high').textContent = formatINR(mrpHigh);
+
+  document.getElementById('calc-hh-low').textContent = formatINR(hhLow);
+  document.getElementById('calc-hh-high').textContent = formatINR(hhHigh);
+
+  document.getElementById('calc-savings-amount').textContent = formatINR(avgSavings);
+
+  // WhatsApp button with pre-filled message
+  const waBtn = document.getElementById('calc-wa-btn');
+  const msg = `Hi Honest Hammer! I need a quote for:\n\nService: ${rate.name}\nArea: ${area} sq.ft\nEstimate: ${formatINR(hhLow)} - ${formatINR(hhHigh)}\n\nPlease provide an exact quote.`;
+  waBtn.href = 'https://wa.me/918925285928?text=' + encodeURIComponent(msg);
+  waBtn.setAttribute('target', '_blank');
+
+  // Show result
+  const resultPanel = document.getElementById('calc-result');
+  resultPanel.style.display = 'block';
+  resultPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
